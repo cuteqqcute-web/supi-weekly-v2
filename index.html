@@ -1152,14 +1152,17 @@ async function loadData() {
 // === 輸出列印（直接複製畫面 DOM，保留所有中文） ===
 const printBtn = document.getElementById('printBtn');
 printBtn.addEventListener('click', () => {
+  showToast('🖨️ 準備列印...');
   const tbl = document.querySelector('.main');
-  if (!tbl) return;
+  if (!tbl) { showToast('❌ 找不到內容'); return; }
   const clone = tbl.cloneNode(true);
   const pa = document.getElementById('printTable');
+  if (!pa) { showToast('❌ 找不到列印區域'); return; }
   pa.innerHTML = '';
   pa.appendChild(clone);
   document.querySelector('#printArea h2').textContent = '🐿️ 酥皮週計畫 ' + currentWeek.label;
-  setTimeout(() => { window.print(); }, 200);
+  showToast('🖨️ 正在開啟列印對話框...');
+  try { window.print(); } catch(e) { showToast('❌ 列印失敗: ' + e.message); }
 });
 </script>
 <script>

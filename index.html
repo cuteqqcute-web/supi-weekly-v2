@@ -1149,54 +1149,17 @@ async function loadData() {
   reader.readAsText(f);
 }); }
 
-// === 輸出列印（同畫面列印，不開新視窗） ===
+// === 輸出列印（直接複製畫面 DOM，保留所有中文） ===
 const printBtn = document.getElementById('printBtn');
 printBtn.addEventListener('click', () => {
-  const list = placements[currentWeek.n] || [];
-  const colors = {
-    swim: '#7fdbff', run: '#90ee90', care: '#ffd166', free: '#c8e6c9',
-    tech: '#c8e6c9', math: '#fff3e0', eng: '#e3f2fd', fixed: '#4db6ac',
-    dance: '#e1bee7', sleep: '#d8b4e2', meal: '#fdfd96'
-  };
-  // Build color grid: day(0-6) × slot(0-29)
-  const grid = Array.from({length:7}, () => Array(30).fill(null));
-  list.forEach(p => {
-    for (let i=0; i<p.len; i++) grid[p.day][p.slot+i] = p;
-  });
-  // Build print table HTML
-  let pt = '<table><thead><tr><th></th>';
-  DAYS.forEach((d,i) => {
-    const sd = new Date(currentWeek.start);
-    const mo = (sd.getDay()===0?-6:1-sd.getDay());
-    const mon = new Date(sd);
-    mon.setDate(sd.getDate()+mo+i);
-    pt += '<th>週' + DAYS[(mon.getDay()+6)%7] + '<br>' + (mon.getMonth()+1) + '/' + mon.getDate() + '</th>';
-  });
-  pt += '</tr></thead><tbody>';
-  for (let s=0; s<30; s++) {
-    pt += '<tr><td class="time">' + slotToTime(s) + '</td>';
-    for (let d=0; d<7; d++) {
-      const p = grid[d][s];
-      let cls = '', txt = '';
-      if (p) {
-        cls = p.type;
-        if (s === p.slot) txt = p.icon + ' ' + p.name + (p.len >= 3 ? '<br>' + slotToTime(p.slot) + '-' + slotToTime(p.slot + p.len) : '');
-      } else {
-        const f = isFixedCell(d, s);
-        if (f) cls = f;
-        if (f === 'fixed' && d === 1 && s === timeToSlot(19,30)) txt = '🏃 體適能<br>19:30-21:30';
-        else if (f === 'fixed' && d === 6 && s === timeToSlot(15,0)) txt = '🚴 體適能<br>15:00-17:30';
-        else if (f === 'dance' && s === timeToSlot(18,30)) txt = '💃 跳舞<br>18:30-21:00';
-        else if (f === 'sleep' && s === timeToSlot(21,0)) txt = '😴';
-      }
-      pt += '<td class="' + cls + '">' + txt + '</td>';
-    }
-    pt += '</tr>';
-  }
-  pt += '</tbody></table>';
-  document.getElementById('printTable').innerHTML = pt;
+  const tbl = document.querySelector('.main');
+  if (!tbl) return;
+  const clone = tbl.cloneNode(true);
+  const pa = document.getElementById('printTable');
+  pa.innerHTML = '';
+  pa.appendChild(clone);
   document.querySelector('#printArea h2').textContent = '🐿️ 酥皮週計畫 ' + currentWeek.label;
-  setTimeout(() => { window.print(); }, 100);
+  setTimeout(() => { window.print(); }, 200);
 });
 </script>
 <script>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="80" fill="#ff9aa2"/>
+  <text x="256" y="40" font-size="300" text-anchor="middle" dominant-baseline="central">🏖️</text>
+  <text x="256" y="410" font-size="64" text-anchor="middle" font-family="sans-serif" fill="white" font-weight="bold">酥皮</text>
+</svg>

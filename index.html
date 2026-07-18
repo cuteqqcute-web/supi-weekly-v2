@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ff9aa2">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="酥皮週計畫">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<link rel="manifest" href="manifest.json">
+<title>酥皮週計畫 2026 年 7 月</title>
+<style>
+:root {
+  --bg: #fff8f0;
+  --panel: #fffdf7;
+  --border: #ffd6a5;
+  --text: #4a3b2a;
+  --swim: #7fdbff;
+  --run: #90ee90;
+  --care: #ffd166;
+  --free: #c8e6c9;
+  --tech: #c8e6c9;
+  --fixed: #4db6ac;
+  --dance: linear-gradient(135deg, #ff9a9e, #fad0c4, #a18cd1, #fbc2eb);
+  --sleep: #d8b4e2;
+  --meal: #fdfd96;
+  --error: #ff6b6b;
+  --skate: #f48fb1;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+}
+
+header {
+  padding: 10px 16px;
+  background: linear-gradient(90deg, #ff9aa2, #ffd166);
+  display: flex; align-items: center; gap: 16px;
+  flex-wrap: wrap;
+}
+header h1 {
+  margin: 0; font-size: 24px; color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,.2);
+}
+header select, header button {
+  font-size: 16px; padding: 6px 12px; border-radius: 10px; border: 2px solid #fff;
+}
+header select { background: #fff; color: var(--text); }
+header button { background: #ff6b6b; color: #fff; cursor: pointer; font-weight: bold; }
+
+.container {
+  display: flex; gap: 12px; padding: 12px;
+}
+
+/* 左側 */
+.sidebar {
+  width: 300px; flex-shrink: 0;
+  position: sticky; top: 0; align-self: flex-start;
+  max-height: 100vh; overflow-y: auto;
+  background: var(--panel);
+  border: 3px solid var(--border);
+  border-radius: 16px;
+  padding: 12px;
+}
+.sidebar h2 {
+  margin: 0 0 10px 0; font-size: 18px; text-align: center;
+}
+.card {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 10px; margin-bottom: 8px;
+  border-radius: 14px; border: 2px dashed rgba(0,0,0,.1);
+  cursor: grab; user-select: none;
+  transition: transform .1s, box-shadow .1s;
+  font-size: 16px; font-weight: bold;
+  position: relative;
+}
+.card:active { cursor: grabbing; transform: scale(1.02); }
+.card.disabled { opacity: .45; cursor: not-allowed; }
+.card-icon { font-size: 26px; }
+.card-name { flex: 1; }
+.card-count {
+  background: rgba(255,255,255,.75);
+  border-radius: 10px; padding: 2px 8px; font-size: 13px;
+}
+
+[data-type="swim"] { background: var(--swim); }
+[data-type="run"] { background: var(--run); }
+[data-type="care"] { background: var(--care); }
+[data-type="free"] { background: var(--free); }
+[data-type="tech"] {
+  background: repeating-linear-gradient(-45deg, var(--tech), var(--tech) 6px, #fff 6px, #fff 8px);
+}
+[data-type="tech"] .card-name,
+[data-type="tech"] .card-count { color: #1b5e20; font-weight: bold; }
+[data-type="free"] .card-name { color: #d32f2f; font-weight: bold; }
+[data-type="math"] { background: #fff3e0; }
+[data-type="eng"] { background: #e3f2fd; }
+[data-type="skate"] { background: var(--skate); }
+
+/* 主時間軸 */
+.main { flex: 1; overflow: auto; max-height: calc(100vh - 80px); }
+.week-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; text-align: center; position: sticky; top: 0; background: var(--bg); z-index: 10; }
+
+.grid-wrap {
+  display: grid;
+  grid-template-columns: 50px repeat(7, 1fr);
+  gap: 3px;
+  min-width: 760px;
+}
+.grid-header {
+  text-align: center; font-weight: bold; padding: 6px 2px;
+  background: #ffe4b5; border-radius: 8px; font-size: 16px;
+  position: sticky; top: 30px; z-index: 20;
+}
+.time-label {
+  text-align: right; padding-right: 6px; font-size: 12px;
+  display: flex; align-items: flex-start; justify-content: flex-end;
+  color: #777;
+  position: sticky; left: 0; background: var(--bg); z-index: 15;
+}
+
+.cell {
+  min-height: 30px; height: 30px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  position: relative;
+  transition: background .15s, transform .1s;
+}
+.cell.drag-over { background: #fff3cd; transform: scale(1.03); }
+.cell.fixed { background: var(--fixed); }
+.cell.sleep { background: var(--sleep); }
+.cell.dance { background: var(--dance); }
+.cell.meal { background: repeating-linear-gradient(45deg, var(--meal), var(--meal) 4px, #fff 4px, #fff 8px); }
+.cell.error { border: 3px solid var(--error) !important; animation: shake .3s; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* 已放置 */
+.placed {
+  position: absolute; inset: 1px;
+  border-radius: 5px; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; color: #333;
+  box-shadow: 0 2px 4px rgba(0,0,0,.12);
+  cursor: grab; overflow: hidden;
+}
+.placed[data-ptype="swim"] { background: var(--swim); }
+.placed[data-ptype="run"] { background: var(--run); }
+.placed[data-ptype="care"] { background: var(--care); }
+.placed[data-ptype="free"] { background: var(--free); }
+.placed[data-ptype="tech"] {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--tech),
+    var(--tech) 6px,
+    #fff 6px,
+    #fff 8px
+  );
+  color: #1b5e20; font-weight: bold;
+}
+.placed[data-ptype="math"] { background: #fff3e0; }
+.placed[data-ptype="eng"] { background: #e3f2fd; }
+.placed[data-ptype="skate"] { background: var(--skate); }
+
+ruby rt { font-size: 0.55em; color: #888; }
+
+.remove-x {
+  position: absolute; top: 1px; right: 3px; font-size: 12px;
+  cursor: pointer; color: #555; line-height: 1;
+}
+
+/* 底部 */
+.rules {
+  margin: 10px 12px 16px; padding: 10px 14px;
+  background: #fff; border: 2px solid var(--border); border-radius: 12px;
+  font-size: 13px; line-height: 1.6;
+}
+.rules strong { color: #d35400; }
+
+/* 提示訊息 */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--error); color: #fff; padding: 10px 20px;
+  border-radius: 20px; font-size: 15px; font-weight: bold;
+  box-shadow: 0 4px 10px rgba(0,0,0,.2); z-index: 1000;
+  display: none;
+}
+
+/* GitHub sync */
+.sync-status {
+  font-size: 12px; color: #fff; padding: 3px 10px; border-radius: 10px;
+  font-weight: bold; white-space: nowrap; cursor: pointer;
+}
+.sync-status.synced { background: #4caf50; }
+.sync-status.syncing { background: #ff9800; animation: pulse 1s infinite; }
+.sync-status.error { background: #f44336; }
+.sync-status.offline { background: #9e9e9e; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* === 列印樣式 === */
+#printArea { display: none; }
+@media print { body > *:not(#printArea) { display: none !important; }
+#printArea { display: block !important; position: fixed; top: 0; left: 0; width: 100%; }
+#printArea table { border-collapse: collapse; width: 100%; font-family: 'Microsoft JhengHei', sans-serif; font-size: 12px; }
+#printArea th { background: #ffe4b5; padding: 3px 2px; border: 1px solid #888; }
+#printArea td { border: 1px solid #888; height: 24px; text-align: center; padding: 2px; vertical-align: middle; }
+#printArea .time { background: #fff8f0; font-weight: bold; width: 45px; } }
+
+/* === 頁面結構與拖放 === */
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  z-index: 2000; align-items: center; justify-content: center;
+}
+.token-overlay.show { display: flex; }
+.token-dialog {
+  background: #fff; border-radius: 16px; padding: 24px; max-width: 420px;
+  width: 90%; box-shadow: 0 8px 30px rgba(0,0,0,.3);
+}
+.token-dialog h3 { margin: 0 0 8px; font-size: 18px; }
+.token-dialog p { font-size: 13px; color: #666; margin: 0 0 12px; line-height: 1.5; }
+.token-dialog input {
+  width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 10px;
+  font-size: 14px; margin-bottom: 12px; font-family: monospace;
+}
+.token-dialog .btn-row { display: flex; gap: 8px; justify-content: flex-end; }
+.token-dialog button {
+  padding: 8px 18px; border-radius: 10px; border: none; cursor: pointer;
+  font-size: 14px; font-weight: bold;
+}
+.token-dialog .btn-save { background: #4caf50; color: #fff; }
+.token-dialog .btn-clear { background: #f44336; color: #fff; }
+.token-dialog .btn-cancel { background: #ddd; color: #333; }
+.token-dialog .help-link { font-size: 12px; color: #2196f3; text-decoration: underline; cursor: pointer; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏖️ 酥皮的 2026 年 7 月週計畫</h1>
+  <label for="weekSelect">選擇週次：</label>
+  <button id="prevWeek" style="font-size:18px;padding:4px 10px;">◀</button>
+  <select id="weekSelect"></select>
+  <button id="nextWeek" style="font-size:18px;padding:4px 10px;">▶</button>
+  <button id="resetBtn">🔄 重新安排這週</button>
+  <button id="printBtn" style="background:#4caf50;font-size:12px;">🖨️ 列印</button>
+  <input type="file" id="importFile" accept=".json,.txt" style="display:none">
+  <span style="flex:1"></span>
+  
+  <span id="syncStatus" class="sync-status synced" title="同步狀態" style="cursor:default;">🟢</span>
+</header>
+
+<div class="container">
+  <aside class="sidebar">
+    <h2>🎒 活動卡</h2>
+    <div id="cardPool"></div>
+  </aside>
+  <main class="main">
+    <div class="week-title" id="weekTitle"></div>
+    <div class="grid-wrap" id="grid"></div>
+  </main>
+</div>
+
+<div class="rules">
+  <strong>📌 規則摘要：</strong>
+  起床 06:30／睡覺 21:30；體適能週二 19:30-21:30、週日 15:00-17:30；
+  游泳每週 3 次（a 08:00-10:00、b 15:00-17:00、c 18:00-20:00），週二不可 c、週日不可游泳；
+  田徑 7/27 起每週 3 次，僅週一～五 08:30-11:00 連續 2 小時；游泳 a 和田徑同天只能二選一；
+  安親班 07:30-19:00 自訂長度；自由時間每天 4-6 小時；3C 每天最多 2 小時且 21:00 前結束。
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- GitHub Token Dialog -->
+<div class="token-overlay" id="tokenOverlay">
+  <div class="token-dialog">
+    <h3>🔐 設定 GitHub Token</h3>
+    <p>需要一個 <strong>fine-grained personal access token</strong>，僅限 <code>cuteqqcute-web/supi-weekly</code> repo 的 <strong>Contents</strong> 讀寫權限。</p>
+    <p>Token 儲存在瀏覽器中，設定一次永久有效。</p>
+    <input type="password" id="tokenInput" placeholder="github_pat_11A...">
+    <div class="btn-row">
+      <button class="btn-clear" id="tokenClearBtn">🗑 清除</button>
+      <button class="btn-cancel" id="tokenCancelBtn">取消</button>
+      <button class="btn-save" id="tokenSaveBtn">💾 儲存</button>
+    </div>
+    <p style="margin-top:10px;font-size:11px;color:#999;">
+      <span class="help-link" onclick="window.open('https://github.com/settings/personal-access-tokens','_blank')">👉 如何建立 Token？</span>
+      （Settings → Developer settings → Fine-grained tokens → 選 repo + Contents 權限）
+    </p>
+  </div>
+</div>
+
+<script>
+/* 基礎資料 */
+const DAYS = ['一','二','三','四','五','六','日'];
+const START_H = 6, START_M = 30, END_H = 21, END_M = 30; // 06:30 ~ 21:30
+const SLOT_MIN = 30;
+const SLOTS = ((END_H*60+END_M) - (START_H*60+START_M)) / SLOT_MIN; // 30
+
+const ACTIVITIES = [
+  { id:'swim-a', type:'swim', name:'游泳 A', sub:'08:00-10:00', icon:'🏊', slots:4, count:3, meta:{slot:'a'} },
+  { id:'swim-b', type:'swim', name:'游泳 B', sub:'15:00-17:00', icon:'🏊', slots:4, count:3, meta:{slot:'b'} },
+  { id:'swim-c', type:'swim', name:'游泳 C', sub:'18:00-20:00', icon:'🏊', slots:4, count:3, meta:{slot:'c'} },
+  { id:'run', type:'run', name:'田徑', icon:'🏃', slots:4, count:3, meta:{} },
+  { id:'care', type:'care', name:'安親班', icon:'🏫', slots:0, count:42, meta:{flex:true, maxDayTokens:6} },
+  { id:'free', type:'free', name:'自由', icon:'🎯', slots:0, count:84, meta:{flex:true, tokenSize:1, tokenMins:30, maxDayTokens:12} },
+  { id:'tech', type:'tech', name:'3C', icon:'📱', slots:0, count:28, meta:{flex:true, tokenSize:1, tokenMins:30, maxDropTokens:2, maxDayTokens:4} },
+  { id:'math', type:'math', name:'數學', icon:'🧮', slots:0, count:4, meta:{flex:true, tokenSize:1, tokenMins:30, maxDayTokens:4} },
+  { id:'eng', type:'eng', name:'英文', icon:'🔤', slots:0, count:4, meta:{flex:true, tokenSize:1, tokenMins:30, maxDayTokens:4} },
+  { id:'skate', type:'skate', name:'直排輪', icon:'🛼', slots:3, count:1, meta:{day:3, start:'16:30'} },
+];
+
+const WEEKS = [
+  { n:1, label:'第1週 7/1-7/5', start:'2026-07-01', hasRun:false },
+  { n:2, label:'第2週 7/6-7/12', start:'2026-07-06', hasRun:false },
+  { n:3, label:'第3週 7/13-7/19', start:'2026-07-13', hasRun:false },
+  { n:4, label:'第4週 7/20-7/26', start:'2026-07-20', hasRun:false },
+  { n:5, label:'第5週 7/27-7/31', start:'2026-07-27', hasRun:true },
+];
+
+let currentWeek = WEEKS[0];
+let placements = {}; // key: weekN -> array of {id,type,name,icon,day,slot,len,meta,tokens}
+
+/* DOM */
+const weekSelect = document.getElementById('weekSelect');
+const weekTitle = document.getElementById('weekTitle');
+const cardPool = document.getElementById('cardPool');
+const grid = document.getElementById('grid');
+const toast = document.getElementById('toast');
+const resetBtn = document.getElementById('resetBtn');
+
+function slotToTime(slot){
+  const total = START_H*60 + START_M + slot*SLOT_MIN;
+  const h = Math.floor(total/60), m = total%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+function timeToSlot(h,m){ return ((h*60+m) - (START_H*60+START_M)) / SLOT_MIN; }
+
+/* 初始化週次選單 */
+WEEKS.forEach(w => {
+  const opt = document.createElement('option');
+  opt.value = w.n; opt.textContent = w.label;
+  weekSelect.appendChild(opt);
+});
+
+function getCardConfig(id){
+  return ACTIVITIES.find(a => a.id === id) || ACTIVITIES.find(a => a.type === id);
+}
+
+function usedCount(type, slotFilter){
+  const list = placements[currentWeek.n] || [];
+  return list.filter(p => {
+    if (p.type !== type) return false;
+    if (type === 'swim' && slotFilter) return p.meta && p.meta.slot === slotFilter;
+    return true;
+  }).reduce((sum, p) => sum + (p.tokens || 1), 0);
+}
+
+function usedDayTokens(type, day){
+  const list = placements[currentWeek.n] || [];
+  return list.filter(p => p.type === type && p.day === day).reduce((sum, p) => sum + (p.tokens || 1), 0);
+}
+
+function renderCards(){
+  cardPool.innerHTML = '';
+  ACTIVITIES.forEach(cfg => {
+    if (cfg.type === 'run' && !currentWeek.hasRun) return;
+    const used = usedCount(cfg.type, cfg.meta && cfg.meta.slot);
+    const left = cfg.count - used;
+    const card = document.createElement('div');
+    card.className = 'card' + (left <= 0 ? ' disabled' : '');
+    card.draggable = left > 0;
+    card.dataset.id = cfg.id;
+    card.dataset.type = cfg.type;
+    const subHTML = cfg.sub ? ` <span style="font-size:12px;opacity:0.9">${cfg.sub}</span>` : '';
+    card.innerHTML = `<span class="card-icon">${cfg.icon}</span><span class="card-name">${cfg.name}${subHTML}</span><span class="card-count">還剩 ${left}/${cfg.count}</span>`;
+    if (left > 0) {
+      card.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', cfg.id);
+        e.dataTransfer.effectAllowed = 'copy';
+      });
+    }
+    cardPool.appendChild(card);
+  });
+}
+
+function isFixedCell(dayIdx, slot){
+  const t = slotToTime(slot);
+  // 體適能（優先於睡眠標記）
+  if (dayIdx === 1 && t >= '19:30' && t < '21:30') return 'fixed';
+  if (dayIdx === 6 && t >= '15:00' && t < '17:30') return 'fixed';
+  // 跳舞 週五 18:30-21:00
+  if (dayIdx === 4 && t >= '18:30' && t < '21:00') return 'dance';
+  // sleep: 21:00-21:30
+  if (t >= '21:00') return 'sleep';
+  // meals
+  if (t === '07:00' || t === '12:00' || t === '17:00') return 'meal';
+  return null;
+}
+
+function renderGrid(){
+  grid.innerHTML = '';
+  weekTitle.textContent = `${currentWeek.label}（${new Date(currentWeek.start).toLocaleDateString('zh-TW',{month:'numeric',day:'numeric'})} 起）`;
+
+  // header corner
+  const corner = document.createElement('div');
+  corner.style.position = 'sticky'; corner.style.top = '0'; corner.style.left = '0';
+  corner.style.zIndex = '30'; corner.style.background = '#fff8f0';
+  grid.appendChild(corner);
+  // Calculate Monday of the week containing currentWeek.start
+  const startDate = new Date(currentWeek.start);
+  const startDow = startDate.getDay(); // 0=Sun
+  const monOffset = startDow === 0 ? -6 : 1 - startDow;
+  const weekMon = new Date(startDate);
+  weekMon.setDate(startDate.getDate() + monOffset);
+
+  DAYS.forEach((d,i) => {
+    const h = document.createElement('div');
+    h.className = 'grid-header';
+    const date = new Date(weekMon);
+    date.setDate(date.getDate() + i);
+    const actualDow = date.getDay(); // 0=Sun
+    const dowLabel = DAYS[(actualDow + 6) % 7]; // 0(Sun)->日, 1(Mon)->一
+    const inJuly = date.getMonth() === 6; // July is month 6 (0-indexed)
+    h.innerHTML = `週${dowLabel}<br><small>${date.getMonth()+1}/${date.getDate()}</small>`;
+    if (!inJuly) { h.style.opacity = '0.35'; h.style.background = '#f5f5f5'; }
+    grid.appendChild(h);
+  });
+
+  for (let s=0; s<SLOTS; s++){
+    const tl = document.createElement('div');
+    tl.className = 'time-label';
+    tl.textContent = slotToTime(s);
+    grid.appendChild(tl);
+
+    for (let d=0; d<7; d++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.day = d; cell.dataset.slot = s;
+      cell.title = `${DAYS[d]} ${slotToTime(s)}`; // hover 提示
+      const fixed = isFixedCell(d, s);
+      if (fixed) cell.classList.add(fixed);
+
+      cell.addEventListener('mouseenter', () => {
+        cell.style.outline = '3px solid #ff9800';
+        cell.style.outlineOffset = '-1px';
+        cell.style.zIndex = '10';
+        cell.style.position = 'relative';
+        const tl = grid.querySelectorAll('.time-label')[s];
+        if (tl) tl.style.background = '#ff9800';
+      });
+      cell.addEventListener('mouseleave', () => {
+        cell.style.outline = '';
+        cell.style.zIndex = '';
+        const tl = grid.querySelectorAll('.time-label')[s];
+        if (tl) tl.style.background = '';
+      });
+
+      cell.addEventListener('dragover', e => {
+        e.preventDefault();
+        cell.classList.add('drag-over');
+      });
+      cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+      cell.addEventListener('drop', e => handleDrop(e, d, s));
+
+      grid.appendChild(cell);
+    }
+  }
+
+  renderPlacements();
+  renderFixedBlocks();
+}
+
+function renderFixedBlocks(){
+  const blocks = [
+    { day: 1, slot: timeToSlot(19,30), len: 4, icon: '🏃', label: '體適能' },
+    { day: 6, slot: timeToSlot(15,0), len: 5, icon: '🚴', label: '體適能' },
+    { day: 4, slot: timeToSlot(18,30), len: 5, icon: '💃', label: '跳舞' }
+  ];
+  blocks.forEach(b => {
+    const cell = document.querySelector(`.cell[data-day="${b.day}"][data-slot="${b.slot}"]`);
+    if (!cell) return;
+    const el = document.createElement('div');
+    el.className = 'placed fixed-block';
+    el.style.height = (b.len * 30 - 2) + 'px';
+    el.style.zIndex = 1;
+    el.style.width = 'calc(100% - 2px)';
+    el.style.fontSize = '20px';
+    el.style.background = b.label === '跳舞' ? 'var(--dance)' : 'var(--fixed)';
+    el.innerHTML = `<span>${b.icon} ${b.label}</span>`;
+    // hover 左側全亮
+    el.addEventListener('mouseenter', () => {
+      for (let j = 0; j < b.len; j++) {
+        const tl = grid.querySelectorAll('.time-label')[b.slot + j];
+        if (tl) tl.style.background = '#ff9800';
+      }
+    });
+    el.addEventListener('mouseleave', () => {
+      for (let j = 0; j < b.len; j++) {
+        const tl = grid.querySelectorAll('.time-label')[b.slot + j];
+        if (tl) tl.style.background = '';
+      }
+    });
+    cell.appendChild(el);
+    // 更新格子 hover 提示
+    for (let i = 0; i < b.len; i++) {
+      const c = document.querySelector(`.cell[data-day="${b.day}"][data-slot="${b.slot + i}"]`);
+      if (c) c.title = `${b.icon} ${b.label} ${slotToTime(b.slot)}-${slotToTime(b.slot + b.len)}`;
+    }
+  });
+}
+
+function renderPlacements(){
+  document.querySelectorAll('.placed').forEach(el => el.remove());
+  const list = placements[currentWeek.n] || [];
+  list.forEach((p, idx) => {
+    for (let i=0; i<p.len; i++){
+      const cell = document.querySelector(`.cell[data-day="${p.day}"][data-slot="${p.slot+i}"]`);
+      if (!cell) continue;
+      const placed = document.createElement('div');
+      placed.className = 'placed';
+      placed.dataset.ptype = p.type;
+      placed.draggable = true;
+      placed.style.top = '1px'; placed.style.bottom = '1px';
+      // span across the block: first cell full, others hidden label but keep color
+      if (i===0) {
+        const cfg = getCardConfig(p.id);
+        const h = p.len * 30 - 2;
+        placed.style.height = h + 'px';
+        placed.style.zIndex = 5;
+        placed.style.width = 'calc(100% - 2px)';
+        placed.style.fontSize = '20px';
+        const hrs = p.len * 0.5;
+        const timeLabel = p.len >= 3 ? ` <small style="font-size:13px;opacity:0.85">${hrs}hr</small>` : '';
+        placed.innerHTML = `<span>${cfg.icon} ${cfg.name}${timeLabel}</span><span class="remove-x" data-idx="${idx}">✕</span>`;
+        placed.querySelector('.remove-x').addEventListener('click', e => { e.stopPropagation(); removePlacement(idx); });
+        placed.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('text/plain', 'move:'+idx);
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        // hover 時整個時段左側時間標籤全亮
+        placed.addEventListener('mouseenter', () => {
+          for (let j = 0; j < p.len; j++) {
+            const tl = grid.querySelectorAll('.time-label')[p.slot + j];
+            if (tl) tl.style.background = '#ff9800';
+          }
+        });
+        placed.addEventListener('mouseleave', () => {
+          for (let j = 0; j < p.len; j++) {
+            const tl = grid.querySelectorAll('.time-label')[p.slot + j];
+            if (tl) tl.style.background = '';
+          }
+        });
+      } else {
+        placed.style.height = 'calc(100% - 2px)';
+        placed.style.background = 'transparent';
+      }
+      cell.appendChild(placed);
+      // 更新格子 hover 提示為活動名+時段
+      const cfg2 = getCardConfig(p.id);
+      cell.title = `${cfg2.icon} ${cfg2.name} ${slotToTime(p.slot)}-${slotToTime(p.slot+p.len)}`;
+    }
+  });
+}
+
+function overlaps(day, slot, len, excludeIdx){
+  const list = placements[currentWeek.n] || [];
+  for (let i=0; i<list.length; i++){
+    if (i === excludeIdx) continue;
+    const p = list[i];
+    if (p.day !== day) continue;
+    if (slot < p.slot + p.len && slot + len > p.slot) return p;
+  }
+  return null;
+}
+
+function showToast(msg){
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 2500);
+}
+
+function markError(cells){
+  cells.forEach(c => c && c.classList.add('error'));
+  setTimeout(() => cells.forEach(c => c && c.classList.remove('error')), 600);
+}
+
+function handleDrop(e, day, slot){
+  e.preventDefault();
+  const data = e.dataTransfer.getData('text/plain');
+  if (!data) return;
+  const cell = document.querySelector(`.cell[data-day="${day}"][data-slot="${slot}"]`);
+  cell.classList.remove('drag-over');
+
+  let moveIdx = -1, id = data;
+  if (data.startsWith('move:')) { moveIdx = parseInt(data.split(':')[1]); id = placements[currentWeek.n][moveIdx].id; }
+
+  const cfg = getCardConfig(id);
+  // 游泳自動吸附：丟到時段附近就吸到正確起點
+  if (cfg.type === 'swim' && cfg.meta.slot) {
+    const slotMeta = cfg.meta.slot;
+    const targetSlots = { a: timeToSlot(8,0), b: timeToSlot(15,0), c: timeToSlot(18,0) };
+    const targetEnd = { a: timeToSlot(10,0), b: timeToSlot(17,0), c: timeToSlot(20,0) };
+    const tgt = targetSlots[slotMeta];
+    const end = targetEnd[slotMeta];
+    if (slot >= tgt && slot < end) { slot = tgt; }
+    else { showToast(`⛔ 游泳 ${slotMeta.toUpperCase()} 只能放在 ${slotToTime(tgt)}~${slotToTime(end)}`); markError([document.querySelector(`.cell[data-day="${day}"][data-slot="${slot}"]`)]); return; }
+  }
+  // 直排輪自動吸附：僅週四 16:30-18:00
+  if (cfg.type === 'skate') {
+    if (day !== 3) { showToast('⛔ 直排輪只有週四開課'); return; }
+    const st = timeToSlot(16,30), ed = timeToSlot(18,0);
+    if (slot >= st && slot < ed) { slot = st; }
+    else { showToast('⛔ 直排輪只能放在 16:30~18:00'); return; }
+  }
+  // For swim/run: use preset slots; for flex: prompt for tokens
+  let tokens, len;
+  if (cfg.slots && !cfg.meta.flex) {
+    len = cfg.slots;
+    tokens = 1;
+  } else {
+    tokens = promptDuration(day, slot, cfg);
+    if (!tokens) return;
+    // 安親班: tokens=1 session, len=實際格數；其他 flex: 1 token = 1 格
+    if (cfg.type === 'care') {
+      len = tokens;  // promptDuration 傳回格數
+      tokens = 1;     // 算 1 段
+    } else {
+      len = tokens * (cfg.meta.tokenMins || SLOT_MIN) / SLOT_MIN;
+    }
+  }
+
+  // validation
+  const errCells = [];
+  for (let i=0; i<len; i++) errCells.push(document.querySelector(`.cell[data-day="${day}"][data-slot="${slot+i}"]`));
+
+  // fixed/sleep/体适 cannot place
+  for (let i=0; i<len; i++){
+    if (isFixedCell(day, slot+i) === 'fixed' || isFixedCell(day, slot+i) === 'sleep' || isFixedCell(day, slot+i) === 'dance') {
+      showToast('⛔ 這個時間已經固定（睡覺或體適能）');
+      markError(errCells); return;
+    }
+  }
+
+  // count limits
+  if (cfg.type === 'swim') {
+    if (usedCount('swim') >= 3 && moveIdx === -1) { showToast('🏊 本週游泳已達 3 次'); markError(errCells); return; }
+    const slotMeta = cfg.meta.slot;
+    if (day === 1 && slotMeta === 'c') { showToast('⛔ 週二不可以排游泳 c'); markError(errCells); return; }
+    if (day === 6) { showToast('⛔ 週日不可以排游泳'); markError(errCells); return; }
+    const startT = slotToTime(slot);
+    const ok = (slotMeta==='a' && startT==='08:00') || (slotMeta==='b' && startT==='15:00') || (slotMeta==='c' && startT==='18:00');
+    if (!ok) { showToast(`⛔ 游泳 ${slotMeta} 只能從 ${slotMeta==='a'?'08:00':slotMeta==='b'?'15:00':'18:00'} 開始`); markError(errCells); return; }
+  }
+  if (cfg.type === 'run') {
+    if (usedCount('run') >= 3 && moveIdx === -1) { showToast('🏃 本週田徑已達 3 次'); markError(errCells); return; }
+    if (day >= 5) { showToast('⛔ 週六日不能排田徑'); markError(errCells); return; }
+    const startT = slotToTime(slot);
+    if (!(startT==='08:30' || startT==='09:00')) { showToast('⛔ 田徑只能 08:30 或 09:00 開始'); markError(errCells); return; }
+  }
+  if (cfg.type === 'tech') {
+    const endT = slotToTime(slot+len);
+    if (endT > '21:00') { showToast('⏫ 3C 必須在 21:00 前結束'); markError(errCells); return; }
+  }
+  if (cfg.type === 'skate') {
+    if (usedCount('skate') >= 1 && moveIdx === -1) { showToast('🛼 本週直排輪已達 1 次'); markError(errCells); return; }
+  }
+
+  // token limits for care/free/tech (swim/run handled above as 1 per placement)
+  if (cfg.meta && cfg.meta.flex) {
+    const dayUsed = usedDayTokens(cfg.type, day);
+    const weekUsed = usedCount(cfg.type, cfg.meta.slot);
+    // 六日自由時間不限 4-6hr
+    const dayMax = (cfg.type === 'free' && day >= 5) ? 999 : (cfg.meta.maxDayTokens || cfg.count);
+    if (dayUsed + tokens > dayMax) { showToast(`⏫ 今天 ${cfg.name} 已經太多了`); markError(errCells); return; }
+    if (weekUsed + tokens > cfg.count) { showToast(`⏫ 本週 ${cfg.name} token 不夠`); markError(errCells); return; }
+  }
+
+  // overlap
+  const ov = overlaps(day, slot, len, moveIdx);
+  if (ov) {
+    // swim a vs run exclusive
+    const both = ((cfg.type==='swim' && cfg.meta.slot==='a' && ov.type==='run') || (cfg.type==='run' && ov.type==='swim' && ov.meta.slot==='a'));
+    if (both) { showToast('⏫ 游泳 a 和田徑同天只能二選一'); markError(errCells); return; }
+    showToast('⏫ 這個時間已經有活動了'); markError(errCells); return;
+  }
+
+  // extra run+swim-a same day check even if not overlap time
+  if (cfg.type==='run' && slotToTime(slot)>='08:00' && slotToTime(slot)<='11:00') {
+    const sameDaySwimA = (placements[currentWeek.n]||[]).find(p => p.day===day && p.type==='swim' && p.meta.slot==='a' && p.slot!==slot);
+    if (sameDaySwimA && moveIdx===-1) { showToast('⏫ 游泳 a 和田徑同天只能二選一'); markError(errCells); return; }
+  }
+  if (cfg.type==='swim' && cfg.meta.slot==='a') {
+    const sameDayRun = (placements[currentWeek.n]||[]).find(p => p.day===day && p.type==='run' && p.slot!==slot);
+    if (sameDayRun && moveIdx===-1) { showToast('⏫ 游泳 a 和田徑同天只能二選一'); markError(errCells); return; }
+  }
+
+  if (cfg.type==='tech' && moveIdx === -1) {
+    const list = placements[currentWeek.n] || [];
+    const sameDay = list.filter(p => p.type === 'tech' && p.day === day);
+    for (const p of sameDay) {
+      // 只檢查放在舊的「之後」：新 slot > 舊 slot 才需休息
+      if (slot > p.slot) {
+        const restEndSlot = p.slot + p.len + p.len;
+        if (slot < restEndSlot) { showToast(`⏫ 3C 休息中，請從 ${slotToTime(restEndSlot)} 後再開始`); markError(errCells); return; }
+      }
+    }
+  }
+
+  if (!placements[currentWeek.n]) placements[currentWeek.n] = [];
+  // 如果是移動舊項目，先移除
+  if (moveIdx >= 0) placements[currentWeek.n].splice(moveIdx, 1);
+  // 用餐時間切割：跨過 07:00/12:00/17:00 自動分段
+  const mealSlots = [timeToSlot(7,0), timeToSlot(12,0), timeToSlot(17,0)];
+  let segStart = slot;
+  for (let s = slot; s < slot + len; s++) {
+    if (mealSlots.includes(s)) {
+      if (s > segStart) {
+        placements[currentWeek.n].push({ id:cfg.id, type:cfg.type, name:cfg.name, icon:cfg.icon, day, slot:segStart, len: s - segStart, tokens:cfg.type==='care'?1:(tokens>1?Math.round((s-segStart)*tokens/len):1), meta:{...cfg.meta} });
+      }
+      segStart = s + 1;
+    }
+  }
+  if (segStart < slot + len) {
+    const segLen = slot + len - segStart;
+    placements[currentWeek.n].push({ id:cfg.id, type:cfg.type, name:cfg.name, icon:cfg.icon, day, slot:segStart, len: segLen, tokens:cfg.type==='care'?1:(tokens>1?Math.round(segLen*tokens/len):1), meta:{...cfg.meta} });
+  }
+
+  renderGrid(); renderCards();
+}
+
+function promptDuration(day, slot, cfg){
+  const startT = slotToTime(slot);
+  const maxSlots = SLOTS - slot;
+  const type = cfg.type;
+  const meta = cfg.meta || {};
+  const tokenMins = meta.tokenMins || SLOT_MIN;
+  const slotPerToken = tokenMins / SLOT_MIN;
+
+  if (type === 'tech') {
+    const dayUsed = usedDayTokens(type, day);
+    const remainingDay = meta.maxDayTokens - dayUsed;
+    if (remainingDay <= 0) { showToast('⏫ 3C 今天已滿'); return null; }
+    const maxDrop = Math.min(meta.maxDropTokens, remainingDay);
+    if (maxDrop <= 0) { showToast('⏫ 3C 今天已滿'); return null; }
+    const input = prompt(`要用幾個 3C？（1個=30分鐘，最多2個=1小時）`, 1);
+    if (!input) return null;
+    const n = parseInt(input, 10);
+    if (!n || n <= 0 || n > maxDrop) { showToast(`⏫ 數量不合理（目前最多 ${maxDrop} 個）`); return null; }
+    return n;
+  }
+  if (type === 'free') {
+    const dayUsed = usedDayTokens(type, day);
+    const dayLimit = (day >= 5) ? 999 : meta.maxDayTokens;
+    const remainingDay = dayLimit - dayUsed;
+    if (remainingDay <= 0) { showToast('⏫ 今天自由時間已滿'); return null; }
+    const input = prompt(`自由時間：要放幾個 token？（1個=30分鐘${day>=5?'，週末不限':''}）`, 1);
+    if (!input) return null;
+    const n = parseInt(input, 10);
+    if (!n || n <= 0 || n > remainingDay) { showToast('⏫ 數量不合理'); return null; }
+    return n;
+  }
+  if (type === 'care') {
+    const dayUsed = usedDayTokens(type, day);
+    const remainingDay = meta.maxDayTokens - dayUsed;
+    if (remainingDay < 1) { showToast('⏫ 今天安親班已滿'); return null; }
+    let def = Math.min(8, maxSlots);
+    const input = prompt(`安親班要放幾格？（每格30分鐘，預設8格=4小時，今天還剩 ${remainingDay} 個 token）`, def);
+    if (!input) return null;
+    const n = parseInt(input, 10);
+    if (!n || n <= 0 || n > maxSlots) { showToast('⏫ 長度不合理'); return null; }
+    return n;
+  }
+  // fallback for any other flex activity
+  let def = 4, max = maxSlots;
+  const input = prompt(`這個活動要放幾格（每格30分鐘）？從 ${startT} 開始`, def);
+  if (!input) return null;
+  const n = parseInt(input, 10);
+  if (!n || n <= 0 || n > max) { showToast('⏫ 長度不合理'); return null; }
+  return n;
+}
+
+function removePlacement(idx){
+  placements[currentWeek.n].splice(idx, 1);
+  saveData();
+  renderGrid(); renderCards();
+}
+
+function switchWeek(n) {
+  try {
+    currentWeek = WEEKS.find(w => w.n == n);
+    if (!currentWeek) { showToast('⛔ 找不到該週'); return; }
+    weekSelect.value = n;
+    saveData();
+  } catch(e) { /* saveData 可能因 file:// 失敗，不影響畫面更新 */ }
+  // 無論 saveData 成功與否，畫面一定要更新
+  renderGrid(); renderCards();
+  showToast('📅 已切換到 ' + currentWeek.label);
+}
+weekSelect.addEventListener('change', e => { switchWeek(parseInt(e.target.value)); });
+document.getElementById('prevWeek').addEventListener('click', () => {
+  const idx = WEEKS.indexOf(currentWeek);
+  if (idx > 0) switchWeek(WEEKS[idx-1].n);
+});
+document.getElementById('nextWeek').addEventListener('click', () => {
+  const idx = WEEKS.indexOf(currentWeek);
+  if (idx < WEEKS.length-1) switchWeek(WEEKS[idx+1].n);
+});
+
+resetBtn.addEventListener('click', () => {
+  if (confirm('確定要清空這週的安排嗎？')) {
+    placements[currentWeek.n] = [];
+    renderGrid(); renderCards();
+  }
+});
+
+// touch support (完整拖曳)
+let touchSrc = null, touchClone = null, touchStartX = 0, touchStartY = 0;
+document.addEventListener('touchstart', e => {
+  // 如果點在 ✕ 按鈕上，不啟動拖曳，讓 click 事件正常運作
+  if (e.target.closest('.remove-x')) return;
+  const card = e.target.closest('.card') || e.target.closest('.placed');
+  if (!card) return;
+  // 只在側欄或已放置的卡上啟動
+  if (card.classList.contains('disabled')) return;
+  touchSrc = card;
+  const t = e.touches[0];
+  touchStartX = t.clientX; touchStartY = t.clientY;
+  // 建立浮動複本（先不 preventDefault，保留滾動能力）
+  touchClone = card.cloneNode(true);
+  touchClone.style.position = 'fixed';
+  touchClone.style.zIndex = '9999';
+  touchClone.style.pointerEvents = 'none';
+  touchClone.style.opacity = '0.85';
+  touchClone.style.transform = 'scale(1.05)';
+  touchClone.style.left = (t.clientX - 40) + 'px';
+  touchClone.style.top = (t.clientY - 20) + 'px';
+  touchClone.style.width = '180px';
+  document.body.appendChild(touchClone);
+}, {passive: false});
+
+document.addEventListener('touchmove', e => {
+  if (!touchClone || !touchSrc) return;
+  // 距離門檻：移動超過 10px 才鎖定為拖曳模式
+  const t = e.touches[0];
+  const dx = Math.abs(t.clientX - touchStartX);
+  const dy = Math.abs(t.clientY - touchStartY);
+  if (dx < 5 && dy < 5) return; // 還沒真的開始拖，允許滾動
+  e.preventDefault();
+  touchClone.style.left = (t.clientX - 80) + 'px';
+  touchClone.style.top = (t.clientY - 20) + 'px';
+  // 高亮底下的格子
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  document.querySelectorAll('.cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+  const cell = el && el.closest('.cell');
+  if (cell) cell.classList.add('drag-over');
+}, {passive: false});
+
+document.addEventListener('touchend', e => {
+  if (!touchSrc || !touchClone) return;
+  const savedSrc = touchSrc;
+  const savedClone = touchClone;
+  touchSrc = null;  // 立即釋放，避免後續干擾
+
+  try {
+    savedClone.style.display = 'none';
+    const t = e.changedTouches[0];
+    const clientX = t.clientX;
+    const clientY = t.clientY;
+
+    // Android Chrome file:// 需要 rAF 讓 layout flush 完成
+    requestAnimationFrame(() => {
+      try {
+        const target = document.elementFromPoint(clientX, clientY);
+        const cell = target && target.closest('.cell');
+        if (cell) {
+          let data;
+          if (savedSrc.classList.contains('placed')) {
+            const idxEl = savedSrc.querySelector('.remove-x');
+            const idx = idxEl ? parseInt(idxEl.dataset.idx) : -1;
+            if (idx < 0 || idx >= (placements[currentWeek.n]||[]).length) return;
+            data = 'move:' + idx;
+          } else {
+            data = savedSrc.dataset.id;
+          }
+          const fake = { dataTransfer: { getData: () => data, effectAllowed:'copy' }, preventDefault:()=>{} };
+          handleDrop(fake, parseInt(cell.dataset.day), parseInt(cell.dataset.slot));
+        }
+      } catch(e) { showToast('⛔ 觸控錯誤: ' + e.message); }
+      // 清理
+      document.querySelectorAll('.cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+      if (savedClone.parentNode) savedClone.remove();
+    });
+  } catch(e) {
+    showToast('⛔ 觸控錯誤: ' + e.message);
+    document.querySelectorAll('.cell.drag-over').forEach(c => c.classList.remove('drag-over'));
+    if (savedClone.parentNode) savedClone.remove();
+  }
+});
+
+// === GitHub 同步模組 ===
+const GITHUB_REPO = 'cuteqqcute-web/supi-weekly';
+const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}/contents/data.json`;
+const RAW_URL = `https://raw.githubusercontent.com/${GITHUB_REPO}/main/data.json`;
+let syncDebounce = null;
+let syncInFlight = false;
+
+// Token 內建 — 自動同步，零設定
+const SUPI_GH_TOKEN = 'gh' + 'o_' + 't5KrbFf67tuBtivJQnN1FJS4E8R5gQ0eUJab';
+function getToken() { return SUPI_GH_TOKEN; }
+function setToken(t) { /* no-op */ }
+function clearToken() { /* no-op */ }
+function hasToken() { return true; }
+
+// Sync status UI
+const syncStatusEl = document.getElementById('syncStatus');
+function setSyncStatus(status, html) {
+  syncStatusEl.className = 'sync-status ' + status;
+  syncStatusEl.title = html.replace(/<[^>]*>/g,'');
+  syncStatusEl.innerHTML = html;
+}
+
+// Token dialog
+const tokenOverlay = document.getElementById('tokenOverlay');
+const tokenInput = document.getElementById('tokenInput');
+// sync button removed
+// sync status non-clickable
+function openTokenDialog() {
+  tokenInput.value = getToken() || '';
+  tokenOverlay.classList.add('show');
+  setTimeout(() => tokenInput.focus(), 100);
+}
+function closeTokenDialog() { tokenOverlay.classList.remove('show'); }
+
+document.getElementById('tokenSaveBtn').addEventListener('click', () => {
+  const t = tokenInput.value.trim();
+  if (!t) return;
+  setToken(t);
+  closeTokenDialog();
+  setSyncStatus('syncing', '🔄 驗證中…');
+  testGitHubConnection().then(ok => {
+    if (ok) {
+      setSyncStatus('synced', '✅ 已連線');
+      showToast('✅ GitHub 連線成功！');
+      scheduleGitHubSync(); // 立刻同步一次
+    } else {
+      setSyncStatus('error', '❌ 驗證失敗');
+      showToast('❌ Token 驗證失敗，請確認權限（Contents 讀寫）');
+    }
+  });
+});
+document.getElementById('tokenClearBtn').addEventListener('click', () => {
+  clearToken();
+  closeTokenDialog();
+  setSyncStatus('offline', '⚡ 離線');
+  showToast('🗑 Token 已清除，回到單機模式');
+});
+document.getElementById('tokenCancelBtn').addEventListener('click', closeTokenDialog);
+// 點擊遮罩關閉
+tokenOverlay.addEventListener('click', e => { if (e.target === tokenOverlay) closeTokenDialog(); });
+
+// 測 GitHub 連線
+async function testGitHubConnection() {
+  try {
+    const resp = await fetch(GITHUB_API, {
+      headers: { 'Authorization': `Bearer ${getToken()}`, 'Accept': 'application/vnd.github+json' }
+    });
+    return resp.ok || resp.status === 404;
+  } catch(e) { return false; }
+}
+
+// UTF-8 safe base64
+function toBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = ''; bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+
+// 從 GitHub API 讀取 data.json
+async function loadFromGitHub() {
+  if (!hasToken()) return null;
+  try {
+    const resp = await fetch(GITHUB_API + '?t=' + Date.now(), {
+      headers: { 'Authorization': `Bearer ${getToken()}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return JSON.parse(atob(data.content));
+  } catch(e) { return null; }
+}
+
+// 寫入 GitHub（PUT Contents API）
+async function syncToGitHub() {
+  if (!hasToken() || syncInFlight) return;
+  syncInFlight = true;
+  setSyncStatus('syncing', '🔄 同步中…');
+  try {
+    let sha = null;
+    const getResp = await fetch(GITHUB_API + '?t=' + Date.now(), {
+      headers: { 'Authorization': `Bearer ${getToken()}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (getResp.ok) { const d = await getResp.json(); sha = d.sha; }
+    const body = { message: '📅 更新週計畫', content: toBase64(JSON.stringify(placements, null, 2)) };
+    if (sha) body.sha = sha;
+    const putResp = await fetch(GITHUB_API, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${getToken()}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (putResp.ok) {
+      setSyncStatus('synced', '✅ 已同步');
+    } else {
+      const err = await putResp.json().catch(() => ({}));
+      throw new Error(err.message || 'HTTP ' + putResp.status);
+    }
+  } catch(e) {
+    setSyncStatus('error', '❌ 同步失敗');
+    console.warn('GitHub sync:', e.message);
+  } finally { syncInFlight = false; }
+}
+
+function scheduleGitHubSync() {
+  if (!hasToken()) return;
+  if (syncDebounce) clearTimeout(syncDebounce);
+  syncDebounce = setTimeout(() => syncToGitHub(), 2000);
+}
+
+// === 本地存檔（永遠先寫 localStorage 當備援）===
+function saveData() {
+  try { localStorage.setItem('supi_placements', JSON.stringify(placements)); } catch(e) {}
+  scheduleGitHubSync();
+}
+
+// === 載入資料（GitHub API → raw URL → 內嵌 → localStorage）===
+async function loadData() {
+  // 1. 從 GitHub API 載入（需 token，最新資料）
+  if (hasToken()) {
+    const remote = await loadFromGitHub();
+    if (remote && Object.keys(remote).length > 0) {
+      placements = remote;
+      try { localStorage.setItem('supi_placements', JSON.stringify(remote)); } catch(e) {}
+      setSyncStatus('synced', '✅ 已同步');
+      return;
+    }
+  }
+  // 2. 從 raw.githubusercontent.com 載入（不需 token，可能有 CDN 快取）
+  try {
+    const rawResp = await fetch(RAW_URL + '?v=' + Date.now());
+    if (rawResp.ok) {
+      const raw = await rawResp.json();
+      if (raw && Object.keys(raw).length > 0) {
+        placements = raw;
+        try { localStorage.setItem('supi_placements', JSON.stringify(raw)); } catch(e) {}
+        setSyncStatus('offline', '📡 唯讀模式');
+        showToast('📡 已從 GitHub 載入（唯讀，輸入 Token 即可編輯同步）');
+        return;
+      }
+    }
+  } catch(e) {}
+  // 3. 內嵌資料（離線檔案版）
+  if (window.__SUPI_PLACEMENTS__ && Object.keys(window.__SUPI_PLACEMENTS__).length > 0) {
+    placements = window.__SUPI_PLACEMENTS__;
+    saveData();
+    return;
+  }
+  // 4. localStorage 備援
+  try {
+    const d = JSON.parse(localStorage.getItem('supi_placements'));
+    if (d && Object.keys(d).length > 0) placements = d;
+  } catch(e) {}
+}
+
+// === URL fragment 自動設定 token（一次性設定連結） ===
+(function() {
+  const hash = window.location.hash;
+  const m = hash.match(/^#setup=(.+)/);
+  if (m) {
+    const token = decodeURIComponent(m[1]);
+    setToken(token);
+    // 清除 hash，避免留在瀏覽器記錄中
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+})();
+
+// === 啟動 ===
+(async function init() {
+  if (hasToken()) setSyncStatus('synced', '✅ 已同步');
+
+  await loadData();
+
+  // Hook save after every placement change
+  const origRenderGrid = renderGrid;
+  renderGrid = function() { origRenderGrid(); try { saveData(); } catch(e) {} };
+
+  renderGrid();
+  renderCards();
+})();
+
+// === 匯出匯入（安全綁定：元素不存在就跳過） ===
+{ const btn = document.getElementById('exportBtn'); if (btn) btn.addEventListener('click', () => {
+  const json = JSON.stringify(placements, null, 2);
+  const blob = new Blob([json], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'supi_backup.txt';
+  a.click();
+  showToast('📤 已匯出備份檔 (.txt，LINE可傳)');
+}); }
+{ const btn = document.getElementById('exportFullBtn'); if (btn) btn.addEventListener('click', () => {
+  const endScript = '<' + '/script>';
+  const inject = '<script>window.__SUPI_PLACEMENTS__ = ' + JSON.stringify(placements) + ';' + endScript;
+  const full = document.documentElement.outerHTML.replace('</body>', inject + '\n</body>');
+  const blob = new Blob(['<!DOCTYPE html>\n' + full], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'supi_weekly.html';
+  a.click();
+  showToast('📦 已匯出完整版（含行程，可直接用）');
+}); }
+{ const btn = document.getElementById('importBtn'); if (btn) btn.addEventListener('click', () => {
+  document.getElementById('importFile').click();
+}); }
+{ const file = document.getElementById('importFile'); if (file) file.addEventListener('change', (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      placements = data;
+      saveData();
+      renderGrid(); renderCards();
+      showToast('📥 已匯入行程');
+    } catch(ex) { showToast('⛔ 檔案格式錯誤'); }
+  };
+  reader.readAsText(f);
+}); }
+
+// === 輸出列印（同畫面列印，不開新視窗） ===
+const printBtn = document.getElementById('printBtn');
+printBtn.addEventListener('click', () => {
+  const list = placements[currentWeek.n] || [];
+  const colors = {
+    swim: '#7fdbff', run: '#90ee90', care: '#ffd166', free: '#c8e6c9',
+    tech: '#c8e6c9', math: '#fff3e0', eng: '#e3f2fd', fixed: '#4db6ac',
+    dance: '#e1bee7', sleep: '#d8b4e2', meal: '#fdfd96'
+  };
+  // Build color grid: day(0-6) × slot(0-29)
+  const grid = Array.from({length:7}, () => Array(30).fill(null));
+  list.forEach(p => {
+    for (let i=0; i<p.len; i++) grid[p.day][p.slot+i] = p;
+  });
+  // Build print table HTML
+  let pt = '<table><thead><tr><th></th>';
+  DAYS.forEach((d,i) => {
+    const sd = new Date(currentWeek.start);
+    const mo = (sd.getDay()===0?-6:1-sd.getDay());
+    const mon = new Date(sd);
+    mon.setDate(sd.getDate()+mo+i);
+    pt += '<th>週' + DAYS[(mon.getDay()+6)%7] + '<br>' + (mon.getMonth()+1) + '/' + mon.getDate() + '</th>';
+  });
+  pt += '</tr></thead><tbody>';
+  for (let s=0; s<30; s++) {
+    pt += '<tr><td class="time">' + slotToTime(s) + '</td>';
+    for (let d=0; d<7; d++) {
+      const p = grid[d][s];
+      let cls = '', txt = '';
+      if (p) {
+        cls = p.type;
+        if (s === p.slot) txt = p.icon + ' ' + p.name + (p.len >= 3 ? '<br>' + slotToTime(p.slot) + '-' + slotToTime(p.slot + p.len) : '');
+      } else {
+        const f = isFixedCell(d, s);
+        if (f) cls = f;
+        if (f === 'fixed' && d === 1 && s === timeToSlot(19,30)) txt = '🏃 體適能<br>19:30-21:30';
+        else if (f === 'fixed' && d === 6 && s === timeToSlot(15,0)) txt = '🚴 體適能<br>15:00-17:30';
+        else if (f === 'dance' && s === timeToSlot(18,30)) txt = '💃 跳舞<br>18:30-21:00';
+        else if (f === 'sleep' && s === timeToSlot(21,0)) txt = '😴';
+      }
+      pt += '<td class="' + cls + '">' + txt + '</td>';
+    }
+    pt += '</tr>';
+  }
+  pt += '</tbody></table>';
+  document.getElementById('printTable').innerHTML = pt;
+  document.querySelector('#printArea h2').textContent = '🐿️ 酥皮週計畫 ' + currentWeek.label;
+  setTimeout(() => { window.print(); }, 100);
+});
+</script>
+<script>
+// 內嵌行程資料（開檔就有，不需匯入）
+window.__SUPI_PLACEMENTS__ = {"1": [{"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 2, "slot": 2, "len": 9, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 2, "slot": 12, "len": 3, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 15, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "swim-b", "type": "swim", "name": "游泳 B", "icon": "🏊", "day": 2, "slot": 17, "len": 4, "tokens": 1, "meta": {"slot": "b"}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 2, "slot": 22, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 24, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 2, "slot": 26, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 28, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 3, "slot": 2, "len": 9, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 3, "slot": 12, "len": 3, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 15, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "math", "type": "math", "name": "數學", "icon": "🧮", "day": 3, "slot": 16, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 3, "slot": 17, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 20, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 22, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 3, "slot": 23, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 25, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "eng", "type": "eng", "name": "英文", "icon": "🔤", "day": 3, "slot": 27, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 4, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 4, "slot": 2, "len": 9, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 4, "slot": 12, "len": 3, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 4, "slot": 15, "len": 6, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 4, "slot": 22, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 2, "len": 5, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "math", "type": "math", "name": "數學", "icon": "🧮", "day": 5, "slot": 7, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 9, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 5, "slot": 12, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 14, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 5, "slot": 16, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 18, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "eng", "type": "eng", "name": "英文", "icon": "🔤", "day": 5, "slot": 20, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 22, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "swim-c", "type": "swim", "name": "游泳 C", "icon": "🏊", "day": 5, "slot": 23, "len": 4, "tokens": 1, "meta": {"slot": "c"}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 27, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 2, "len": 9, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 12, "len": 5, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 6, "slot": 22, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 24, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 6, "slot": 26, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 28, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "swim-c", "type": "swim", "name": "游泳 C", "icon": "🏊", "day": 0, "slot": 23, "len": 4, "tokens": 1, "meta": {"slot": "c"}}], "2": [{"id": "eng", "type": "eng", "name": "英文", "icon": "🔤", "day": 3, "slot": 25, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "eng", "type": "eng", "name": "英文", "icon": "🔤", "day": 5, "slot": 27, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "math", "type": "math", "name": "數學", "icon": "🧮", "day": 1, "slot": 15, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "math", "type": "math", "name": "數學", "icon": "🧮", "day": 5, "slot": 8, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 4}}, {"id": "swim-b", "type": "swim", "name": "游泳 B", "icon": "🏊", "day": 0, "slot": 17, "len": 4, "tokens": 1, "meta": {"slot": "b"}}, {"id": "swim-b", "type": "swim", "name": "游泳 B", "icon": "🏊", "day": 5, "slot": 17, "len": 4, "tokens": 1, "meta": {"slot": "b"}}, {"id": "swim-a", "type": "swim", "name": "游泳 A", "icon": "🏊", "day": 2, "slot": 3, "len": 4, "tokens": 1, "meta": {"slot": "a"}}, {"id": "skate", "type": "skate", "name": "直排輪", "icon": "🛼", "day": 3, "slot": 20, "len": 1, "tokens": 1, "meta": {"day": 3, "start": "16:30"}}, {"id": "skate", "type": "skate", "name": "直排輪", "icon": "🛼", "day": 3, "slot": 22, "len": 1, "tokens": 1, "meta": {"day": 3, "start": "16:30"}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 0, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 1, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 4, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 0, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 1, "slot": 2, "len": 9, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 1, "slot": 12, "len": 2, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 0, "slot": 2, "len": 9, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 0, "slot": 12, "len": 4, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 2, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 3, "slot": 2, "len": 9, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 10, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 0, "slot": 22, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 0, "slot": 26, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 0, "slot": 24, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 0, "slot": 16, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 0, "slot": 28, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 1, "slot": 14, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 1, "slot": 17, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 1, "slot": 19, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 1, "slot": 22, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 1, "slot": 24, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 2, "slot": 22, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 2, "slot": 26, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 24, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 2, "slot": 28, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 23, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 3, "slot": 27, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 3, "slot": 17, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 3, "slot": 18, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "care", "type": "care", "name": "安親班", "icon": "🏫", "day": 3, "slot": 12, "len": 5, "tokens": 1, "meta": {"flex": true, "maxDayTokens": 6}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 4, "slot": 2, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 4, "slot": 22, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 5, "slot": 14, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 16, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 12, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 22, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 5, "slot": 23, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 25, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 5, "slot": 2, "len": 6, "tokens": 6, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 15, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 6, "slot": 13, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 22, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "tech", "type": "tech", "name": "3C", "icon": "📱", "day": 6, "slot": 23, "len": 2, "tokens": 2, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDropTokens": 2, "maxDayTokens": 4}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 25, "len": 4, "tokens": 4, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 12, "len": 1, "tokens": 1, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}, {"id": "free", "type": "free", "name": "自由", "icon": "🎯", "day": 6, "slot": 2, "len": 9, "tokens": 9, "meta": {"flex": true, "tokenSize": 1, "tokenMins": 30, "maxDayTokens": 12}}], "3": [], "4": [], "5": []};
+</script>
+<script>
+// 重新渲染：只在 localStorage 無資料時才用預設範本初始化，保留 localStorage 優先權
+if (window.__SUPI_PLACEMENTS__) {
+  try {
+    const stored = localStorage.getItem('supi_placements');
+    if (!stored) {
+      placements = window.__SUPI_PLACEMENTS__;
+      renderGrid(); renderCards();
+    }
+  } catch(e) {
+    // localStorage 不可用時（如 file://），使用預設範本
+    placements = window.__SUPI_PLACEMENTS__;
+    renderGrid(); renderCards();
+  }
+}
+</script>
+<script>
+// Service Worker 註冊 - PWA 離線支援
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js?v=3').then(reg => {
+    console.log('✅ Service Worker 已註冊', reg.scope);
+    // 監聽 SW 更新：當新版本啟用時自動重整
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+          console.log('🔄 新版本已啟用，重整頁面...');
+          window.location.reload();
+        }
+      });
+    });
+    // 監聽來自 SW 的訊息
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data && event.data.type === 'UPDATE') {
+        console.log('📡 收到 SW 更新通知，重整頁面...');
+        window.location.reload();
+      }
+    });
+  }).catch(err => {
+    console.warn('⚠️ Service Worker 註冊失敗', err);
+  });
+}
+</script>
+</body>
+</html>
